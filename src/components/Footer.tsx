@@ -84,11 +84,11 @@ export default function Footer() {
                         </p>
                         <div className="flex flex-col gap-2 mt-2">
                             <a
-                                href="https://wa.me/94772202885"
+                                href="https://wa.me/94772716230"
                                 className="text-gray-500 hover:text-[#1152d4] transition-colors flex items-center gap-2 text-sm"
                             >
                                 <span className="material-symbols-outlined text-[18px]">call</span>
-                                077 220 2885
+                                077 271 6230
                             </a>
                             <a
                                 href="mailto:rehanbhareti@gmail.com"

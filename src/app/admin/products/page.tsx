@@ -145,7 +145,7 @@ export default function ProductsManager() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm font-bold text-gray-900">
-                                            ${product.price ? product.price.toLocaleString() : "0"}
+                                            Rs. {product.price ? product.price.toLocaleString() : "0"}
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <button
@@ -155,6 +155,13 @@ export default function ProductsManager() {
                                             >
                                                 <span className="material-symbols-outlined">delete</span>
                                             </button>
+                                            <Link
+                                                href={`/admin/products/${product.id}`}
+                                                className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-all inline-block"
+                                                title="Edit Product"
+                                            >
+                                                <span className="material-symbols-outlined">edit</span>
+                                            </Link>
                                         </td>
                                     </tr>
                                 ))

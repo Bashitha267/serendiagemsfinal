@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LayoutDashboard, Images, Package, Shapes, Diamond, Layers, Globe, User, FileText, HelpCircle, Settings, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Images, Package, Shapes, Diamond, Layers, Globe, User, FileText, HelpCircle, Settings, LogOut, Menu, X, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -61,6 +61,14 @@ export default function AdminLayout({
                     >
                         <LayoutDashboard className="w-5 h-5" />
                         Dashboard
+                    </Link>
+                    <Link
+                        href="/admin/orders"
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 rounded-lg hover:bg-slate-50 hover:text-[#b38e5d] transition-colors"
+                    >
+                        <ShoppingCart className="w-5 h-5" />
+                        Orders
                     </Link>
                     <Link
                         href="/admin/slider-manager"

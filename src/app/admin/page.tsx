@@ -30,7 +30,8 @@ export default function AdminDashboard() {
         totalProducts: 0,
         totalCategories: 0
     });
-    const [orders, setOrders] = useState<Order[]>([]);
+    const [popularProducts, setPopularProducts] = useState<{ name: string, clicks: number }[]>([]);
+
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -47,7 +48,8 @@ export default function AdminDashboard() {
 
             const { count: categoriesCount } = await supabase
                 .from('categories')
-                .select('*', { count: 'exact', head: true });
+                .select('*', { count: 'exact', head: true })
+                .neq('slug', 'fine-gems');
 
             const { count: ordersCount } = await supabase
                 .from('orders')
@@ -59,18 +61,42 @@ export default function AdminDashboard() {
                 totalCategories: categoriesCount || 0
             });
 
-            // Fetch Recent Orders
-            const { data: ordersData, error: ordersError } = await supabase
-                .from('orders')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(10);
 
-            if (ordersError) {
-                console.error("Error fetching orders:", ordersError);
-                // Don't show toast on 404/missing table to avoid clutter if table doesn't exist yet
-            } else {
-                setOrders(ordersData || []);
+
+            // Fetch Popularity Data
+            const { data: popularityData } = await supabase
+                .from('popularity')
+                .select('*');
+
+            if (popularityData) {
+                // Aggregate Product Clicks
+                const productClicks: Record<string, number> = {};
+                const categoryClicks: Record<string, number> = {};
+
+                popularityData.forEach(item => {
+                    if (item.item_type === 'product') {
+                        productClicks[item.item_id] = (productClicks[item.item_id] || 0) + 1;
+                    } else if (item.item_type === 'category') {
+                        categoryClicks[item.item_id] = (categoryClicks[item.item_id] || 0) + 1;
+                    }
+                });
+
+                // Top 5 Products
+                const topProductIds = Object.keys(productClicks).sort((a, b) => productClicks[b] - productClicks[a]).slice(0, 5);
+                if (topProductIds.length > 0) {
+                    const { data: products } = await supabase
+                        .from('products')
+                        .select('id, name')
+                        .in('id', topProductIds);
+
+                    if (products) {
+                        const mappedProducts = topProductIds.map(id => {
+                            const p = products.find(p => p.id.toString() === id); // id might be num or string
+                            return p ? { name: p.name, clicks: productClicks[id] } : null;
+                        }).filter(Boolean) as { name: string, clicks: number }[];
+                        setPopularProducts(mappedProducts);
+                    }
+                }
             }
 
         } catch (error) {
@@ -80,41 +106,7 @@ export default function AdminDashboard() {
         }
     };
 
-    const handleStatusChange = async (orderId: number, newStatus: string) => {
-        try {
-            const { error } = await supabase
-                .from('orders')
-                .update({ status: newStatus })
-                .eq('id', orderId);
 
-            if (error) throw error;
-
-            setOrders(orders.map(order =>
-                order.id === orderId ? { ...order, status: newStatus as any } : order
-            ));
-            toast.success(`Order status updated to ${newStatus.replace('_', ' ')}`);
-        } catch (error) {
-            console.error("Error updating status:", error);
-            toast.error("Failed to update status");
-        }
-    };
-
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'pending': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-            case 'processing': return 'bg-blue-100 text-blue-700 border-blue-200';
-            case 'handed_over': return 'bg-purple-100 text-purple-700 border-purple-200';
-            case 'delivered': return 'bg-green-100 text-green-700 border-green-200';
-            default: return 'bg-gray-100 text-gray-700 border-gray-200';
-        }
-    };
-
-    const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'handed_over': return 'Handed to Delivery';
-            default: return status.charAt(0).toUpperCase() + status.slice(1);
-        }
-    };
 
     return (
         <div className="space-y-8">
@@ -183,76 +175,27 @@ export default function AdminDashboard() {
                 </Link>
             </div>
 
-            {/* Recent Orders Table */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-gray-900">Recent Orders</h3>
-                    <div className="flex gap-2">
-                        {/* Filter placeholders could go here */}
+            {/* Popularity Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Most Clicked Products */}
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm md:col-span-2">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">Most Clicked Products</h3>
+                    <div className="space-y-3">
+                        {popularProducts.length === 0 ? (
+                            <p className="text-sm text-gray-500">No data yet.</p>
+                        ) : (
+                            popularProducts.map((item, i) => (
+                                <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                                    <span className="text-sm font-medium text-gray-700">{item.name}</span>
+                                    <span className="text-xs font-bold text-[#b38e5d] bg-[#b38e5d]/10 px-2 py-1 rounded-full">{item.clicks} clicks</span>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
-
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50 border-b border-slate-100">
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Order ID</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Total</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-gray-400">Loading orders...</td>
-                                </tr>
-                            ) : orders.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-gray-400">No orders found.</td>
-                                </tr>
-                            ) : (
-                                orders.map((order) => (
-                                    <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-6 py-4 text-sm font-medium text-gray-900">#{order.id}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">{order.customer_name}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">
-                                            {new Date(order.created_at).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
-                                                {getStatusLabel(order.status)}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm font-bold text-gray-900 text-right">
-                                            ${order.total?.toLocaleString()}
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="relative inline-block text-left group">
-                                                <select
-                                                    value={order.status}
-                                                    onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                                                    className="appearance-none bg-white border border-slate-200 text-gray-700 py-1 pl-3 pr-8 rounded leading-tight focus:outline-none focus:border-[#b38e5d] text-xs cursor-pointer"
-                                                >
-                                                    <option value="pending">Pending</option>
-                                                    <option value="processing">Processing</option>
-                                                    <option value="handed_over">Handed Over</option>
-                                                    <option value="delivered">Delivered</option>
-                                                </select>
-                                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                                    <MoreHorizontal className="w-3 h-3" />
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
             </div>
+
+            {/* Recent Orders Table removed */}
         </div>
     );
 }

@@ -30,7 +30,7 @@ export default function AdminLogin() {
             if (res.ok) {
                 sendGTMEvent({ event: 'login', method: 'credentials' });
                 toast.success('Welcome back!');
-                router.push('/admin');
+                router.replace('/admin');
                 router.refresh();
             } else {
                 toast.error(data.error || 'Login failed');

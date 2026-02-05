@@ -21,6 +21,7 @@ interface CartContextType {
     openCart: () => void;
     closeCart: () => void;
     toggleCart: () => void;
+    clearCart: () => void;
     totalItems: number;
     totalPrice: number;
 }
@@ -68,6 +69,7 @@ export default function CartProvider({ children }: { children: ReactNode }) {
     const openCart = () => setIsOpen(true);
     const closeCart = () => setIsOpen(false);
     const toggleCart = () => setIsOpen((prev) => !prev);
+    const clearCart = () => setItems([]);
 
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
     const totalPrice = items.reduce(
@@ -86,6 +88,7 @@ export default function CartProvider({ children }: { children: ReactNode }) {
                 openCart,
                 closeCart,
                 toggleCart,
+                clearCart,
                 totalItems,
                 totalPrice,
             }}

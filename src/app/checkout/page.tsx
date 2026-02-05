@@ -5,10 +5,17 @@ import { motion } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import Link from "next/link";
 import Image from "next/image";
-import { CreditCard, Calendar, Lock, User, MapPin, Mail, Phone } from "lucide-react";
+import { CreditCard, Calendar, Lock, User, MapPin, Mail, Phone, MessageCircle } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export default function CheckoutPage() {
-    const { items, totalPrice } = useCart();
+    const { items, totalPrice, clearCart } = useCart();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Admin WhatsApp Number
+    const ADMIN_WHATSAPP = "94772716230";
 
     // Form States
     const [formData, setFormData] = useState({
@@ -33,13 +40,61 @@ export default function CheckoutPage() {
     };
 
     // Format Card Number for visual display
-    const formatCardNumber = (value: string) => {
-        const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
-        const parts = [];
-        for (let i = 0; i < v.length; i += 4) {
-            parts.push(v.substring(i, i + 4));
+    const router = useRouter();
+
+    const handleWhatsAppOrder = async () => {
+        // Validate
+        if (!formData.firstName || !formData.phone || !formData.address) {
+            toast.error("Please fill in required fields (Name, Phone, Address)");
+            return;
         }
-        return parts.length > 1 ? parts.join(" ") : value;
+
+        setIsSubmitting(true);
+
+        try {
+            // 1. Create Order in Supabase
+            const { data: orderData, error: orderError } = await supabase
+                .from('orders')
+                .insert({
+                    customer_name: `${formData.firstName} ${formData.lastName}`.trim(),
+                    total: totalPrice,
+                    status: 'pending',
+                    // Add other fields if your schema supports them (email, phone, address, etc.)
+                    // For now, minimal fields to ensure it works with current admin dashboard
+                })
+                .select()
+                .single();
+
+            if (orderError) throw orderError;
+
+            // 2. Format WhatsApp Message
+            const orderId = orderData ? String(orderData.id).slice(0, 8) : 'New';
+
+            let message = `*New Order #${orderId}*\n\n`;
+            message += `*Customer:*\n${formData.firstName} ${formData.lastName}\n${formData.phone}\n${formData.address}, ${formData.city}\n\n`;
+            message += `*Items:*\n`;
+            items.forEach(item => {
+                message += `- ${item.name} (${item.weight}) x${item.quantity}: Rs. ${(item.price * item.quantity).toLocaleString()}\n`;
+            });
+            message += `\n*Total: Rs. ${totalPrice.toLocaleString()}*`;
+
+            const encodedMessage = encodeURIComponent(message);
+            const whatsappUrl = `https://wa.me/${ADMIN_WHATSAPP}?text=${encodedMessage}`;
+
+            // 3. Open WhatsApp
+            window.open(whatsappUrl, '_blank');
+
+            // 4. Clear Cart and Redirect
+            clearCart();
+            toast.success("Order placed! Redirecting to WhatsApp...");
+            router.push('/');
+
+        } catch (error) {
+            console.error("Order error:", error);
+            toast.error("Failed to create order. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -190,7 +245,7 @@ export default function CheckoutPage() {
                                                 <h4 className="text-sm font-medium text-gray-900">{item.name}</h4>
                                                 <p className="text-xs text-gray-500">{item.weight} • Qty {item.quantity}</p>
                                             </div>
-                                            <span className="text-sm font-bold text-gray-900">${(item.price * item.quantity).toLocaleString()}</span>
+                                            <span className="text-sm font-bold text-gray-900">Rs. {(item.price * item.quantity).toLocaleString()}</span>
                                         </div>
                                     ))
                                 )}
@@ -198,7 +253,7 @@ export default function CheckoutPage() {
                             <div className="border-t border-slate-100 pt-4 space-y-2">
                                 <div className="flex justify-between text-sm text-gray-500">
                                     <span>Subtotal</span>
-                                    <span>${totalPrice.toLocaleString()}</span>
+                                    <span>Rs. {totalPrice.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between text-sm text-gray-500">
                                     <span>Shipping</span>
@@ -206,7 +261,7 @@ export default function CheckoutPage() {
                                 </div>
                                 <div className="flex justify-between text-lg font-bold text-gray-900 pt-2">
                                     <span>Total</span>
-                                    <span>${totalPrice.toLocaleString()}</span>
+                                    <span>Rs. {totalPrice.toLocaleString()}</span>
                                 </div>
                             </div>
                         </div>
@@ -214,6 +269,7 @@ export default function CheckoutPage() {
                         {/* Payment Section (White Theme) */}
                         <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl relative overflow-hidden">
 
+                            {/* 
                             <div className="flex items-center gap-3 mb-8">
                                 <CreditCard className="text-[#1152d4] w-6 h-6" />
                                 <h2 className="text-xl font-bold text-gray-900 tracking-wide uppercase font-serif">Payment Method</h2>
@@ -230,7 +286,6 @@ export default function CheckoutPage() {
                                 </div>
 
                                 <div className="space-y-6">
-                                    {/* Card Number */}
                                     <div>
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2">Card Number</label>
                                         <input
@@ -248,7 +303,6 @@ export default function CheckoutPage() {
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-6">
-                                        {/* Expiry */}
                                         <div>
                                             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2">Expiry</label>
                                             <input
@@ -261,7 +315,6 @@ export default function CheckoutPage() {
                                                 placeholder="MM / YY"
                                             />
                                         </div>
-                                        {/* CVC */}
                                         <div>
                                             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2">CVC</label>
                                             <div className="relative">
@@ -278,7 +331,6 @@ export default function CheckoutPage() {
                                         </div>
                                     </div>
 
-                                    {/* Name on Card */}
                                     <div className="pt-2">
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2">Card Holder Name</label>
                                         <input
@@ -296,7 +348,24 @@ export default function CheckoutPage() {
                             <button className="w-full mt-8 bg-[#1152d4] hover:bg-blue-600 text-white font-bold py-5 rounded-xl shadow-lg transition-all transform active:scale-[0.99] flex items-center justify-center gap-3 uppercase tracking-wider text-sm">
                                 <Lock className="w-4 h-4" />
                                 Secure Pay ${totalPrice.toLocaleString()}
-                            </button>
+                            </button> 
+                            */}
+
+                            {/* WhatsApp Order Button */}
+                            <div className="flex flex-col gap-4 text-center">
+                                <h3 className="text-gray-900 font-bold text-lg">Complete Your Order</h3>
+                                <p className="text-gray-500 text-sm">
+                                    Click below to send your order details directly to us via WhatsApp. Payment can be arranged there.
+                                </p>
+                                <button
+                                    onClick={handleWhatsAppOrder}
+                                    disabled={isSubmitting}
+                                    className="w-full mt-4 bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-5 rounded-xl shadow-lg transition-all transform active:scale-[0.99] flex items-center justify-center gap-3 uppercase tracking-wider text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <MessageCircle className="w-5 h-5" />
+                                    {isSubmitting ? "Processing..." : `Order via WhatsApp • Rs. ${totalPrice.toLocaleString()}`}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

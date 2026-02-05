@@ -159,7 +159,7 @@ function CollectionsContent() {
                 setCategories(categoriesData.map(cat => ({
                     name: cat.name,
                     slug: cat.slug
-                })));
+                })).filter(cat => cat.slug !== 'fine-gems'));
             }
 
             const { data: typesData } = await supabase.from('types').select('*').order('name');
@@ -185,7 +185,7 @@ function CollectionsContent() {
         sendGTMEvent({
             event: 'add_to_cart',
             ecommerce: {
-                currency: "USD",
+                currency: "LKR",
                 value: product.price,
                 items: [{
                     item_id: product.id,
@@ -208,7 +208,18 @@ function CollectionsContent() {
         openCart();
     };
 
-    const handleProductClick = (product: Product) => {
+    const handleProductClick = async (product: Product) => {
+        // Track click
+        try {
+            await fetch('/api/track-popularity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ itemId: product.id, itemType: 'product' }),
+            });
+        } catch (error) {
+            console.error('Error tracking click:', error);
+        }
+
         sendGTMEvent({
             event: 'select_item',
             ecommerce: {
@@ -523,7 +534,7 @@ function CollectionsContent() {
                                                         Price
                                                     </p>
                                                     <span className="text-xl font-bold text-gray-900">
-                                                        ${product.price.toLocaleString()}
+                                                        Rs. {product.price.toLocaleString()}
                                                     </span>
                                                 </div>
                                             </div>

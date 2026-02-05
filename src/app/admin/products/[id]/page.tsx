@@ -9,9 +9,9 @@ import toast from "react-hot-toast";
 const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
-export default function AddProductPage() {
+export default function EditProductPage({ params }: { params: { id: string } }) {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
 
     // Form Stats
@@ -41,8 +41,12 @@ export default function AddProductPage() {
     const [shapes, setShapes] = useState<any[]>([]);
 
     useEffect(() => {
-        fetchDependencies();
-    }, []);
+        const init = async () => {
+            await fetchDependencies();
+            await fetchProduct();
+        };
+        init();
+    }, [params.id]);
 
     const fetchDependencies = async () => {
         const { data: catData } = await supabase.from("categories").select("id, name").order("name");
@@ -52,6 +56,52 @@ export default function AddProductPage() {
         if (catData) setCategories(catData);
         if (typeData) setTypes(typeData);
         if (shapeData) setShapes(shapeData);
+    };
+
+    const fetchProduct = async () => {
+        try {
+            const { data, error } = await supabase
+                .from("products")
+                .select("*")
+                .eq("id", params.id)
+                .single();
+
+            if (error) throw error;
+            if (data) {
+                setFormData({
+                    name: data.name || "",
+                    price: data.price?.toString() || "",
+                    description: data.description || "",
+                    weight: data.weight || "",
+                    origin: data.origin || "",
+                    treatment: data.treatment || "",
+                    clarity: data.clarity || "",
+                    color: data.color || "",
+                    cut: data.cut || "",
+                    category_id: data.category_id?.toString() || "",
+                    type_id: data.type_id?.toString() || "",
+                    shape_id: data.shape_id?.toString() || "",
+                });
+
+                if (data.images && Array.isArray(data.images)) {
+                    const previews = [null, null, null] as (string | null)[];
+                    data.images.forEach((url: string, index: number) => {
+                        if (index < 3) previews[index] = url;
+                    });
+                    setImagePreviews(previews);
+                }
+
+                if (data.video_url) {
+                    setVideoPreview(data.video_url);
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching product:", error);
+            toast.error("Failed to load product");
+            router.push("/admin/products");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -100,26 +150,30 @@ export default function AddProductPage() {
         }
 
         setUploading(true);
-        const toastId = toast.loading("Uploading media & creating product...");
+        const toastId = toast.loading("Updating product...");
 
         try {
-            // 1. Upload Images
-            const imageUrls = [];
-            for (const img of images) {
-                if (img) {
-                    const url = await uploadFile(img);
-                    imageUrls.push(url);
+            // 1. Handle Images
+            const finalImageUrls = [];
+            for (let i = 0; i < 3; i++) {
+                if (images[i]) {
+                    // Start upload for new file
+                    const url = await uploadFile(images[i]!);
+                    finalImageUrls.push(url);
+                } else if (imagePreviews[i] && !imagePreviews[i]?.startsWith("blob:")) {
+                    // Existing URL
+                    finalImageUrls.push(imagePreviews[i]);
                 }
             }
 
-            // 2. Upload Video
-            let videoUrl = null;
+            // 2. Handle Video
+            let videoUrl = videoPreview;
             if (video) {
                 videoUrl = await uploadFile(video);
             }
 
-            // 3. Save to Supabase
-            const { error } = await supabase.from("products").insert([{
+            // 3. Update Supabase
+            const { error } = await supabase.from("products").update({
                 name: formData.name,
                 price: parseFloat(formData.price),
                 description: formData.description,
@@ -132,13 +186,13 @@ export default function AddProductPage() {
                 category_id: formData.category_id ? parseInt(formData.category_id) : null,
                 type_id: formData.type_id ? parseInt(formData.type_id) : null,
                 shape_id: formData.shape_id ? parseInt(formData.shape_id) : null,
-                images: imageUrls,
+                images: finalImageUrls,
                 video_url: videoUrl
-            }]);
+            }).eq("id", params.id);
 
             if (error) throw error;
 
-            toast.success("Product created successfully!", { id: toastId });
+            toast.success("Product updated successfully!", { id: toastId });
             router.push("/admin/products");
 
         } catch (error: any) {
@@ -149,9 +203,11 @@ export default function AddProductPage() {
         }
     };
 
+    if (loading) return <div className="text-center py-20">Loading product...</div>;
+
     return (
         <div className="max-w-4xl mx-auto pb-20">
-            <h1 className="text-2xl font-serif font-bold text-gray-900 mb-8">Add New Product</h1>
+            <h1 className="text-2xl font-serif font-bold text-gray-900 mb-8">Edit Product</h1>
 
             <form onSubmit={handleSubmit} className="space-y-8 bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
 
@@ -159,45 +215,45 @@ export default function AddProductPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
-                        <input name="name" required onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#b38e5d] outline-none" />
+                        <input name="name" value={formData.name} required onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#b38e5d] outline-none" />
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Price (Rs)</label>
-                        <input name="price" type="number" required onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#b38e5d] outline-none" />
+                        <input name="price" type="number" value={formData.price} required onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#b38e5d] outline-none" />
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Weight (e.g. 2.5 ct)</label>
-                        <input name="weight" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#b38e5d] outline-none" />
+                        <input name="weight" value={formData.weight} onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#b38e5d] outline-none" />
                     </div>
                 </div>
 
                 {/* Description */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea name="description" rows={4} onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#b38e5d] outline-none" />
+                    <textarea name="description" value={formData.description} rows={4} onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#b38e5d] outline-none" />
                 </div>
 
                 {/* Classification Dropdowns */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                        <select name="category_id" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#b38e5d] outline-none bg-white">
+                        <select name="category_id" value={formData.category_id} onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#b38e5d] outline-none bg-white">
                             <option value="">Select Category</option>
                             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                        <select name="type_id" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#b38e5d] outline-none bg-white">
+                        <select name="type_id" value={formData.type_id} onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#b38e5d] outline-none bg-white">
                             <option value="">Select Type</option>
                             {types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Shape</label>
-                        <select name="shape_id" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#b38e5d] outline-none bg-white">
+                        <select name="shape_id" value={formData.shape_id} onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#b38e5d] outline-none bg-white">
                             <option value="">Select Shape</option>
                             {shapes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
@@ -208,19 +264,19 @@ export default function AddProductPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                         <label className="block text-xs font-medium text-gray-500 mb-1">Origin</label>
-                        <input name="origin" onChange={handleChange} className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-[#b38e5d] outline-none" />
+                        <input name="origin" value={formData.origin} onChange={handleChange} className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-[#b38e5d] outline-none" />
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 mb-1">Treatment</label>
-                        <input name="treatment" onChange={handleChange} className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-[#b38e5d] outline-none" />
+                        <input name="treatment" value={formData.treatment} onChange={handleChange} className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-[#b38e5d] outline-none" />
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 mb-1">Clarity</label>
-                        <input name="clarity" onChange={handleChange} className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-[#b38e5d] outline-none" />
+                        <input name="clarity" value={formData.clarity} onChange={handleChange} className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-[#b38e5d] outline-none" />
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 mb-1">Color</label>
-                        <input name="color" onChange={handleChange} className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-[#b38e5d] outline-none" />
+                        <input name="color" value={formData.color} onChange={handleChange} className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-[#b38e5d] outline-none" />
                     </div>
                 </div>
 
@@ -232,7 +288,7 @@ export default function AddProductPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-3">Product Images (Max 3)</label>
                         <div className="flex gap-4 overflow-x-auto pb-2">
                             {[0, 1, 2].map((i) => (
-                                <div key={i} className="relative w-32 h-32 flex-shrink-0">
+                                <div key={i} className="relative w-32 h-32 shrink-0">
                                     <input
                                         type="file"
                                         accept="image/*"
@@ -307,18 +363,25 @@ export default function AddProductPage() {
                     </div>
                 </div>
 
-                <div className="pt-4">
+                <div className="pt-4 flex gap-4">
+                    <button
+                        type="button"
+                        onClick={() => router.back()}
+                        className="flex-1 py-4 bg-gray-100 text-gray-700 font-bold rounded-lg hover:bg-gray-200 transition-colors shadow-sm"
+                    >
+                        Cancel
+                    </button>
                     <button
                         type="submit"
                         disabled={uploading}
-                        className="w-full py-4 bg-[#b38e5d] text-white font-bold rounded-lg hover:bg-[#9a7b50] transition-colors shadow-md flex justify-center items-center gap-2"
+                        className="flex-1 py-4 bg-[#b38e5d] text-white font-bold rounded-lg hover:bg-[#9a7b50] transition-colors shadow-md flex justify-center items-center gap-2"
                     >
                         {uploading ? (
                             <>
                                 <span className="material-symbols-outlined animate-spin">progress_activity</span>
-                                Publishing Product...
+                                Updating Product...
                             </>
-                        ) : "Publish Product"}
+                        ) : "Update Product"}
                     </button>
                 </div>
 

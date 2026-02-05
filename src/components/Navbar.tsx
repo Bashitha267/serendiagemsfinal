@@ -32,10 +32,12 @@ export default function Navbar() {
 
                 if (data) {
                     setGemCategories(
-                        data.map((cat) => ({
-                            name: cat.name,
-                            href: `/collections?category=${cat.slug}`,
-                        }))
+                        data
+                            .filter(cat => cat.slug !== 'fine-gems' && cat.slug !== 'fine_gems')
+                            .map((cat) => ({
+                                name: cat.name,
+                                href: `/collections?category=${cat.slug}`,
+                            }))
                     );
                 }
             } catch (error) {
@@ -207,7 +209,7 @@ export default function Navbar() {
                                 {/* Total Price (Desktop) */}
                                 {totalItems > 0 && (
                                     <span className="hidden md:block text-sm font-medium text-gray-600">
-                                        ${totalPrice.toLocaleString()}
+                                        Rs. {totalPrice.toLocaleString()}
                                     </span>
                                 )}
                                 <span className="material-symbols-outlined text-2xl">shopping_bag</span>

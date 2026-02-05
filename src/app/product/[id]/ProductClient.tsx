@@ -101,7 +101,7 @@ export default function ProductClient({ id }: { id: string }) {
             sendGTMEvent({
                 event: 'view_item',
                 ecommerce: {
-                    currency: "USD",
+                    currency: "LKR",
                     value: product.price,
                     items: [{
                         item_id: product.id.toString(),
@@ -146,7 +146,7 @@ export default function ProductClient({ id }: { id: string }) {
             sendGTMEvent({
                 event: 'add_to_cart',
                 ecommerce: {
-                    currency: "USD",
+                    currency: "LKR",
                     value: product.price,
                     items: [{
                         item_id: product.id.toString(),
@@ -323,11 +323,9 @@ export default function ProductClient({ id }: { id: string }) {
                             </h1>
                             <div className="mt-4 flex items-end gap-4">
                                 <p className="text-3xl font-semibold text-[#1152d4]">
-                                    ${product.price.toLocaleString()}
+                                    Rs. {product.price.toLocaleString()}
                                 </p>
-                                <span className="text-sm text-gray-500 mb-1.5">
-                                    Free insured shipping
-                                </span>
+
                             </div>
                         </div>
 
@@ -397,12 +395,7 @@ export default function ProductClient({ id }: { id: string }) {
                                 </span>
                                 Add to Cart
                             </motion.button>
-                            <button className="flex-none bg-slate-100 border border-slate-200 rounded-lg py-4 px-4 flex items-center justify-center text-gray-700 hover:bg-slate-200 transition-all">
-                                <span className="material-symbols-outlined">favorite_border</span>
-                            </button>
-                            <button className="flex-none bg-slate-100 border border-slate-200 rounded-lg py-4 px-4 flex items-center justify-center text-gray-700 hover:bg-slate-200 transition-all">
-                                <span className="material-symbols-outlined">chat</span>
-                            </button>
+
                         </div>
 
                         {/* Trust Badges */}
@@ -417,7 +410,7 @@ export default function ProductClient({ id }: { id: string }) {
                                 <span className="material-symbols-outlined text-green-500 text-lg">
                                     local_shipping
                                 </span>
-                                <span>Free Global Shipping</span>
+                                <span>Secure Local Shipping</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-green-500 text-lg">
@@ -448,18 +441,15 @@ export default function ProductClient({ id }: { id: string }) {
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: "auto" }}
                                         className="mt-4 text-sm leading-6 text-gray-600">
-                                        <p>{product.description}</p>
+
                                         {product.clarity && (
                                             <p className="mt-2">
-                                                <strong>Clarity:</strong> {product.clarity} - This gemstone exhibits
-                                                exceptional transparency and minimal inclusions, ensuring maximum
-                                                brilliance and value.
+                                                <strong>Clarity:</strong> {product.clarity}
                                             </p>
                                         )}
                                         {product.color && (
                                             <p className="mt-2">
-                                                <strong>Color:</strong> The {product.color} hue is consistent and
-                                                vibrant, making this a standout piece in any collection.
+                                                <strong>Color:</strong> {product.color}
                                             </p>
                                         )}
                                     </motion.div>
@@ -552,7 +542,7 @@ export default function ProductClient({ id }: { id: string }) {
                                         </h3>
                                         <p className="mt-1 text-sm text-gray-500">{item.clarity || item.weight}</p>
                                         <p className="mt-2 text-lg font-medium text-[#1152d4]">
-                                            ${item.price.toLocaleString()}
+                                            Rs. {item.price.toLocaleString()}
                                         </p>
                                     </div>
                                 </motion.div>

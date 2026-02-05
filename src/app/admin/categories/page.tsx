@@ -53,87 +53,23 @@ export default function CategoriesManager() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const [editingId, setEditingId] = useState<number | null>(null);
 
-        if (!name.trim()) {
-            toast.error("Category name is required");
-            return;
-        }
-
-        if (!file) {
-            toast.error("Category image is required");
-            return;
-        }
-
-        const cloudName = CLOUD_NAME?.trim();
-        const uploadPreset = UPLOAD_PRESET?.trim();
-
-        if (!cloudName || !uploadPreset) {
-            console.error("Cloudinary config missing:", { cloudName, uploadPreset });
-            toast.error("Cloudinary configuration missing");
-            return;
-        }
-
-        setUploading(true);
-        const toastId = toast.loading("Creating category...");
-
-        try {
-            const formData = new FormData();
-            formData.append("file", file);
-            formData.append("upload_preset", uploadPreset);
-
-            const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
-            console.log("Uploading to:", uploadUrl);
-
-            const response = await fetch(uploadUrl, {
-                method: "POST",
-                body: formData,
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error("Cloudinary upload failed:", response.status, errorData);
-                throw new Error(`Upload failed: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-
-            if (!data.secure_url) {
-                throw new Error("Image upload successful but no URL returned");
-            }
-
-            const slug = name.toLowerCase().replace(/ /g, "-").replace(/[^\w-]+/g, "");
-
-            const { error } = await supabase.from("categories").insert([{
-                name: name.trim(),
-                image_url: data.secure_url,
-                slug: slug
-            }]);
-
-            if (error) throw error;
-
-            toast.success("Category created successfully", { id: toastId });
-            setName("");
-            setFile(null);
-            const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-            if (fileInput) fileInput.value = '';
-
-            fetchCategories();
-
-        } catch (error: any) {
-            console.error("Error creating category:", error);
-            if (error.message && (error.message.includes("fetch") || error.message.includes("Network"))) {
-                toast.error("Network error: Could not connect to Cloudinary. Check your internet.", { id: toastId });
-            } else {
-                toast.error(`Failed: ${error.message}`, { id: toastId });
-            }
-        } finally {
-            setUploading(false);
-        }
+    const resetForm = () => {
+        setName("");
+        setFile(null);
+        setEditingId(null);
+        const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
     };
 
-
+    const handleEdit = (category: Category) => {
+        setName(category.name);
+        setEditingId(category.id);
+        const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     const handleDelete = async (id: number) => {
         if (!confirm("Are you sure you want to delete this category?")) return;
@@ -145,6 +81,78 @@ export default function CategoriesManager() {
         } else {
             setCategories(categories.filter((cat) => cat.id !== id));
             toast.success("Category deleted successfully");
+            if (editingId === id) resetForm();
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!name.trim()) {
+            toast.error("Category name is required");
+            return;
+        }
+
+        if (!file && !editingId) {
+            toast.error("Category image is required for new categories");
+            return;
+        }
+
+        const cloudName = CLOUD_NAME?.trim();
+        const uploadPreset = UPLOAD_PRESET?.trim();
+
+        if (!cloudName || !uploadPreset) {
+            toast.error("Cloudinary configuration missing");
+            return;
+        }
+
+        setUploading(true);
+        const toastId = toast.loading(editingId ? "Updating category..." : "Creating category...");
+
+        try {
+            let imageUrl = "";
+
+            if (file) {
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("upload_preset", uploadPreset);
+
+                const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+                const response = await fetch(uploadUrl, { method: "POST", body: formData });
+
+                if (!response.ok) throw new Error("Image upload failed");
+
+                const data = await response.json();
+                imageUrl = data.secure_url;
+            }
+
+            const slug = name.toLowerCase().replace(/ /g, "-").replace(/[^\w-]+/g, "");
+            const updates: any = { name: name.trim(), slug };
+            if (imageUrl) updates.image_url = imageUrl;
+
+            if (editingId) {
+                const { error } = await supabase
+                    .from("categories")
+                    .update(updates)
+                    .eq("id", editingId);
+                if (error) throw error;
+                toast.success("Category updated successfully", { id: toastId });
+            } else {
+                const { error } = await supabase
+                    .from("categories")
+                    .insert([{ ...updates, image_url: imageUrl }]);
+                if (error) throw error;
+                toast.success("Category created successfully", { id: toastId });
+            }
+
+            resetForm();
+            fetchCategories();
+
+        } catch (error: any) {
+            console.error("Error saving category:", error);
+            toast.error(`Failed: ${error.message}`, { id: toastId });
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -193,23 +201,34 @@ export default function CategoriesManager() {
                                 </div>
                             </div>
 
-                            <button
-                                type="submit"
-                                disabled={uploading}
-                                className={`w-full py-3 px-4 bg-[#b38e5d] text-white font-medium rounded-lg hover:bg-[#9a7b50] transition-colors flex items-center justify-center gap-2 ${uploading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                            >
-                                {uploading ? (
-                                    <>
-                                        <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
-                                        Creating...
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="material-symbols-outlined">add_circle</span>
-                                        Create Category
-                                    </>
+                            <div className="flex gap-2">
+                                <button
+                                    type="submit"
+                                    disabled={uploading}
+                                    className={`flex-1 py-3 px-4 bg-[#b38e5d] text-white font-medium rounded-lg hover:bg-[#9a7b50] transition-colors flex items-center justify-center gap-2 ${uploading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                >
+                                    {uploading ? (
+                                        <>
+                                            <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                                            {editingId ? "Updating..." : "Creating..."}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="material-symbols-outlined">{editingId ? "save" : "add_circle"}</span>
+                                            {editingId ? "Update Category" : "Create Category"}
+                                        </>
+                                    )}
+                                </button>
+                                {editingId && (
+                                    <button
+                                        type="button"
+                                        onClick={resetForm}
+                                        className="py-3 px-4 bg-slate-100 text-slate-600 font-medium rounded-lg hover:bg-slate-200 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
                                 )}
-                            </button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -248,6 +267,13 @@ export default function CategoriesManager() {
                                             title="Delete Category"
                                         >
                                             <span className="material-symbols-outlined">delete</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleEdit(category)}
+                                            className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-all"
+                                            title="Edit Category"
+                                        >
+                                            <span className="material-symbols-outlined">edit</span>
                                         </button>
                                     </div>
                                 ))}

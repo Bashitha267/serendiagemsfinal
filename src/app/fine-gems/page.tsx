@@ -411,7 +411,7 @@ function FineGemsContent() {
                                                         Price
                                                     </p>
                                                     <span className="text-xl font-bold text-gray-900">
-                                                        ${product.price.toLocaleString()}
+                                                        Rs. {product.price.toLocaleString()}
                                                     </span>
                                                 </div>
                                             </div>
