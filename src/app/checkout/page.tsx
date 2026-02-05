@@ -15,7 +15,7 @@ export default function CheckoutPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Admin WhatsApp Number
-    const ADMIN_WHATSAPP = "94772716230";
+    const ADMIN_WHATSAPP = "94772202885";
 
     // Form States
     const [formData, setFormData] = useState({
