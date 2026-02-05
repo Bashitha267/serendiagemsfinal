@@ -150,7 +150,7 @@ export default function ProductsManager() {
                                         <td className="px-6 py-4 text-right">
                                             <button
                                                 onClick={() => handleDelete(product.id)}
-                                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                                                className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-all"
                                                 title="Delete Product"
                                             >
                                                 <span className="material-symbols-outlined">delete</span>

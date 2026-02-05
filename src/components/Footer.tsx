@@ -18,6 +18,16 @@ export default function Footer() {
     const [legalData, setLegalData] = useState<Record<string, LegalContent>>({});
     const [loading, setLoading] = useState(false);
 
+    const [categories, setCategories] = useState<{ name: string; slug: string }[]>([]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            const { data } = await supabase.from('categories').select('name, slug').limit(5);
+            if (data) setCategories(data);
+        };
+        fetchCategories();
+    }, []);
+
     // Fetch legal content when modal opens
     useEffect(() => {
         if (isModalOpen && Object.keys(legalData).length === 0) {
@@ -72,20 +82,20 @@ export default function Footer() {
                             Exporting the finest Sri Lankan gemstones to the world with
                             integrity, transparency, and a commitment to our heritage.
                         </p>
-                        <div className="flex gap-4 mt-2">
+                        <div className="flex flex-col gap-2 mt-2">
                             <a
-                                href="#"
-                                className="text-gray-400 hover:text-[#1152d4] transition-colors"
+                                href="https://wa.me/94772202885"
+                                className="text-gray-500 hover:text-[#1152d4] transition-colors flex items-center gap-2 text-sm"
                             >
-                                <span className="material-symbols-outlined">public</span>
+                                <span className="material-symbols-outlined text-[18px]">call</span>
+                                077 220 2885
                             </a>
                             <a
-                                href="#"
-                                className="text-gray-400 hover:text-[#1152d4] transition-colors"
+                                href="mailto:rehanbhareti@gmail.com"
+                                className="text-gray-500 hover:text-[#1152d4] transition-colors flex items-center gap-2 text-sm"
                             >
-                                <span className="material-symbols-outlined">
-                                    alternate_email
-                                </span>
+                                <span className="material-symbols-outlined text-[18px]">mail</span>
+                                rehanbhareti@gmail.com
                             </a>
                         </div>
                     </div>
@@ -95,35 +105,24 @@ export default function Footer() {
                         <h3 className="text-gray-900 font-bold text-sm tracking-widest uppercase">
                             Collections
                         </h3>
+                        {categories.length > 0 ? (
+                            categories.map((cat) => (
+                                <Link
+                                    key={cat.slug}
+                                    href={`/collections?category=${cat.slug}`}
+                                    className="text-gray-600 hover:text-[#1152d4] transition-colors text-sm"
+                                >
+                                    {cat.name}
+                                </Link>
+                            ))
+                        ) : (
+                            <p className="text-gray-400 text-sm">Loading...</p>
+                        )}
                         <Link
                             href="/collections"
-                            className="text-gray-600 hover:text-[#1152d4] transition-colors text-sm"
+                            className="text-gray-600 hover:text-[#1152d4] transition-colors text-sm font-medium mt-2"
                         >
-                            Blue Sapphires
-                        </Link>
-                        <Link
-                            href="/collections"
-                            className="text-gray-600 hover:text-[#1152d4] transition-colors text-sm"
-                        >
-                            Rubies
-                        </Link>
-                        <Link
-                            href="/fine-gems"
-                            className="text-gray-600 hover:text-[#1152d4] transition-colors text-sm"
-                        >
-                            Fine Gems
-                        </Link>
-                        <Link
-                            href="/collections"
-                            className="text-gray-600 hover:text-[#1152d4] transition-colors text-sm"
-                        >
-                            Padparadscha
-                        </Link>
-                        <Link
-                            href="/collections"
-                            className="text-gray-600 hover:text-[#1152d4] transition-colors text-sm"
-                        >
-                            Engagement Rings
+                            View All Collections
                         </Link>
                     </div>
 
@@ -156,12 +155,18 @@ export default function Footer() {
                         >
                             Contact Us
                         </Link>
+                        <Link
+                            href="/admin/login"
+                            className="text-gray-600 hover:text-[#1152d4] transition-colors text-sm"
+                        >
+                            Admin Login
+                        </Link>
                     </div>
                 </div>
 
                 <div className="border-t border-slate-200 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
                     <p className="text-gray-400 text-xs">
-                        © 2024 Serendia Gems. All rights reserved.
+                        © 2026 Serendia Gems. All rights reserved.
                     </p>
                     <div className="flex gap-6">
                         <button

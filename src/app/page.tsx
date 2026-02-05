@@ -142,6 +142,25 @@ export default function Home() {
     "/hero/hero4.jpeg",
   ]);
   const [faqs, setFaqs] = useState<{ id: string; question: string; answer: string }[]>([]);
+  const [reviews, setReviews] = useState<{ id: number; name: string; comment: string; rating: number; image_url?: string }[]>([]);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const { data } = await supabase
+          .from('reviews')
+          .select('*')
+          .eq('status', 'approved')
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        if (data) setReviews(data);
+      } catch (error) {
+        console.error("Error fetching reviews", error);
+      }
+    };
+    fetchReviews();
+  }, []);
 
   useEffect(() => {
     const fetchFAQs = async () => {
@@ -412,7 +431,7 @@ export default function Home() {
         >
           <div className="text-center flex flex-col gap-4">
             <span className="text-[#b38e5d] font-bold tracking-[0.3em] uppercase text-[10px]">
-              Client Stories
+              Customer Reviews
             </span>
             <h2 className="text-gray-900 text-4xl md:text-5xl font-serif font-medium leading-tight">
               Enduring Legacies
@@ -423,60 +442,54 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                name: "Eleanor P.",
-                location: "NEW YORK, USA",
-                initial: "E",
-                quote: "The blue sapphire I purchased is absolutely mesmerizing. The clarity surpasses anything I've seen in local jewelry stores. Highly recommended for serious collectors."
-              },
-              {
-                name: "Marcus T.",
-                location: "LONDON, UK",
-                initial: "M",
-                quote: "Incredible service from start to finish. They helped me source a rare Padparadscha for my engagement ring. It's unique and stunning."
-              },
-              {
-                name: "Sarah L.",
-                location: "SYDNEY, AUSTRALIA",
-                initial: "S",
-                quote: "Authenticity was my biggest concern when buying online. The GRS certificate provided peace of mind, and the stone is exactly as described."
-              }
-            ].map((testimonial, idx) => (
-              <motion.div
-                key={idx}
-                variants={fadeInUp}
-                initial="initial"
-                whileInView="animate"
-                viewport={{ once: true }}
-                className="bg-white p-10 rounded-xl relative flex flex-col gap-8 group shadow-sm border border-slate-100 hover:shadow-xl hover:border-[#b38e5d]/20 transition-all duration-500"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex gap-1 text-[#b38e5d]">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className="material-symbols-outlined text-[16px] fill-current">star</span>
-                    ))}
+            {reviews.length > 0 ? (
+              reviews.map((review: any) => (
+                <motion.div
+                  key={review.id}
+                  variants={fadeInUp}
+                  initial="initial"
+                  whileInView="animate"
+                  viewport={{ once: true }}
+                  className="bg-white p-10 rounded-xl relative flex flex-col gap-8 group shadow-sm border border-slate-100 hover:shadow-xl hover:border-[#b38e5d]/20 transition-all duration-500"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex gap-1 text-[#b38e5d]">
+                      {[...Array(5)].map((_, i) => (
+                        <span key={i} className={`material-symbols-outlined text-[16px] ${i < review.rating ? "fill-current" : "text-gray-200"}`}>star</span>
+                      ))}
+                    </div>
+                    <span className="material-symbols-outlined text-slate-100 text-6xl font-extralight absolute top-4 right-6 select-none">
+                      format_quote
+                    </span>
                   </div>
-                  <span className="material-symbols-outlined text-slate-100 text-6xl font-extralight absolute top-4 right-6 select-none">
-                    format_quote
-                  </span>
-                </div>
 
-                <blockquote className="text-gray-800 text-base font-serif italic leading-relaxed relative z-10">
-                  &quot;{testimonial.quote}&quot;
-                </blockquote>
+                  <blockquote className="text-gray-800 text-base font-serif italic leading-relaxed relative z-10 line-clamp-4">
+                    &quot;{review.comment}&quot;
+                  </blockquote>
 
-                <div className="flex items-center gap-4 mt-auto">
-                  <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-[#b38e5d] font-serif font-bold border border-slate-100 shadow-inner">
-                    {testimonial.initial}
+                  {review.image_url && (
+                    <div className="relative w-full h-48 rounded-lg overflow-hidden mt-2 mb-2">
+                      <Image src={review.image_url} alt="Review Image" fill className="object-cover" />
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-4 mt-auto">
+                    <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-[#b38e5d] font-serif font-bold border border-slate-100 shadow-inner uppercase">
+                      {review.name.charAt(0)}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-gray-900 font-bold text-sm tracking-tight">{review.name}</span>
+                      <span className="text-gray-500 text-[10px] tracking-[0.1em] uppercase font-medium">Verified Buyer</span>
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-gray-900 font-bold text-sm tracking-tight">{testimonial.name}</span>
-                    <span className="text-gray-500 text-[10px] tracking-[0.1em] uppercase font-medium">{testimonial.location}</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))
+            ) : (
+              // Fallback / Loading state
+              <div className="col-span-1 md:col-span-3 text-center text-gray-400 py-10">
+                <p>No reviews yet. Be the first to review us!</p>
+              </div>
+            )}
           </div>
         </motion.section>
 

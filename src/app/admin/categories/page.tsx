@@ -244,7 +244,7 @@ export default function CategoriesManager() {
                                         </div>
                                         <button
                                             onClick={() => handleDelete(category.id)}
-                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                                            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-all"
                                             title="Delete Category"
                                         >
                                             <span className="material-symbols-outlined">delete</span>

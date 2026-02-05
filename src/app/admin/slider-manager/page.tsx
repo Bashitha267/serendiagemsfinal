@@ -158,13 +158,13 @@ export default function SliderManager() {
                                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                         className="object-cover"
                                     />
-                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <div className="absolute top-2 right-2">
                                         <button
                                             onClick={() => handleDelete(img.id)}
-                                            className="p-2 bg-white/10 text-white hover:bg-red-500 rounded-full backdrop-blur-sm transition-colors"
+                                            className="p-2 bg-red-500 text-white rounded-full shadow-md hover:bg-red-600 transition-colors"
                                             title="Delete Image"
                                         >
-                                            <Trash className="w-5 h-5" />
+                                            <Trash className="w-4 h-4" />
                                         </button>
                                     </div>
                                 </div>

@@ -134,7 +134,7 @@ export default function FAQsAdmin() {
                                                 <button
                                                     onClick={() => handleDelete(faq.id)}
                                                     disabled={deleting === faq.id}
-                                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-50"
+                                                    className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                                                     title="Delete FAQ"
                                                 >
                                                     {deleting === faq.id ? (
