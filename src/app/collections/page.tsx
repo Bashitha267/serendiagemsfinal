@@ -77,7 +77,7 @@ function CollectionsContent() {
                 }
 
                 // Let's retry the query construction to be safe with the !inner requirement for filtering
-                let selectQuery = `
+                const selectQuery = `
                     id,
                     name,
                     price,

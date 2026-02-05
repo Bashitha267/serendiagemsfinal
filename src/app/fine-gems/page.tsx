@@ -93,7 +93,7 @@ function FineGemsContent() {
             setIsLoading(true);
             try {
                 // Fixed category filter
-                let selectQuery = `
+                const selectQuery = `
                     id,
                     name,
                     price,

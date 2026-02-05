@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CartProvider from "@/context/CartContext";
 import { Toaster } from "react-hot-toast";
+import { GoogleTagManager } from '@next/third-parties/google';
 
 const inter = Inter({
   variable: "--font-inter",
@@ -36,6 +37,8 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
+      {/* This one line connects everything */}
+      <GoogleTagManager gtmId="GTM-N9QN7LDP" />
       <body
         className={`${inter.variable} ${playfair.variable} font-sans bg-[#F8FAFC] text-gray-900 antialiased overflow-x-hidden`}
       >
