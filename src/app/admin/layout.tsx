@@ -126,6 +126,14 @@ export default function AdminLayout({
                         <span className="material-symbols-outlined text-[20px]">reviews</span>
                         Manage Reviews
                     </Link>
+                    <Link
+                        href="/admin/seo"
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 rounded-lg hover:bg-slate-50 hover:text-[#b38e5d] transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-[20px]">search</span>
+                        SEO Management
+                    </Link>
                 </nav>
 
                 <div className="p-4 border-t border-slate-100 space-y-1">

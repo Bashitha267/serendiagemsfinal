@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+
 import { Loader2, Lock, User } from "lucide-react";
 import toast from "react-hot-toast";
+import { sendGTMEvent } from '@next/third-parties/google';
 
 export default function AdminLogin() {
     const router = useRouter();
@@ -26,6 +28,7 @@ export default function AdminLogin() {
             const data = await res.json();
 
             if (res.ok) {
+                sendGTMEvent({ event: 'login', method: 'credentials' });
                 toast.success('Welcome back!');
                 router.push('/admin');
                 router.refresh();

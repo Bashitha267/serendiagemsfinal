@@ -20,6 +20,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://serendiagem.com'), // Replace with actual domain or env var
   title: "Serendia Gems | Heart of Sri Lanka",
   description: "Ethically mined, expertly cut. Discover the world's finest Sapphires directly from the source.",
 };
