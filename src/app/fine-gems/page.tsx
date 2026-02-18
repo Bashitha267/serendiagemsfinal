@@ -22,6 +22,7 @@ interface Product {
     shape: string;
     images: string[];
     category: string;
+    type?: string;
     badge?: string;
     badgeColor?: string;
 }
@@ -60,15 +61,22 @@ function FineGemsContent() {
 
     // State
     const [products, setProducts] = useState<Product[]>([]);
+    const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const [categories, setCategories] = useState<{ name: string; slug: string }[]>([]);
     const [types, setTypes] = useState<{ name: string, slug: string }[]>([]);
     const [shapes, setShapes] = useState<{ name: string, slug: string }[]>([]);
 
+    // Filter States
+    const [minPrice, setMinPrice] = useState<number>(10000);
+    const [maxPrice, setMaxPrice] = useState<number>(1000000);
+    const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+    const [selectedShapes, setSelectedShapes] = useState<string[]>([]);
+
     useEffect(() => {
         const fetchFilters = async () => {
-            const { data: categoriesData } = await supabase.from('categories').select('*').order('name');
+            const { data: categoriesData } = await supabase.from('categories').select('*').order('order', { ascending: true });
             if (categoriesData) {
                 setCategories(categoriesData.map(cat => ({
                     name: cat.name,
@@ -129,6 +137,7 @@ function FineGemsContent() {
                         weight: item.weight,
                         origin: item.origin,
                         shape: item.shape?.name || '',
+                        type: item.type?.name || '',
                         treatment: item.treatment,
                         clarity: item.clarity,
                         color: item.color,
@@ -137,6 +146,7 @@ function FineGemsContent() {
                         category: item.category?.name || '',
                     }));
                     setProducts(formatedProducts);
+                    setFilteredProducts(formatedProducts);
                 }
             } catch (err) {
                 console.error('Unexpected error:', err);
@@ -146,10 +156,40 @@ function FineGemsContent() {
         };
 
         fetchProducts();
-    }, []); // Run once on mount since category is fixed
+    }, []);
+
+    // Apply filters function
+    const applyFilters = () => {
+        let result = [...products];
+
+        // Price Filter
+        result = result.filter(p => p.price >= minPrice && p.price <= maxPrice);
+
+        // Type Filter
+        if (selectedTypes.length > 0) {
+            result = result.filter(p => selectedTypes.includes(p.type || ''));
+        }
+
+        // Shape Filter
+        if (selectedShapes.length > 0) {
+            result = result.filter(p => selectedShapes.includes(p.shape || ''));
+        }
+
+        setFilteredProducts(result);
+        setShowMobileFilters(false);
+    };
+
+    const resetFilters = () => {
+        setMinPrice(10000);
+        setMaxPrice(1000000);
+        setSelectedTypes([]);
+        setSelectedShapes([]);
+        setFilteredProducts(products);
+        setShowMobileFilters(false);
+    };
 
     // Client-side Sorting
-    const sortedProducts = [...products].sort((a, b) => {
+    const sortedProducts = [...filteredProducts].sort((a, b) => {
         switch (sortBy) {
             case "PriceLowHigh":
                 return a.price - b.price;
@@ -226,7 +266,15 @@ function FineGemsContent() {
 
                         {/* Filter by: */}
                         <div className="flex flex-col gap-10">
-                            <h3 className="text-gray-900 font-bold text-sm uppercase tracking-wider">Filter by:</h3>
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-gray-900 font-bold text-sm uppercase tracking-wider">Filter by:</h3>
+                                <button
+                                    onClick={resetFilters}
+                                    className="text-[10px] text-[#b38e5d] font-bold uppercase tracking-widest hover:underline"
+                                >
+                                    Reset
+                                </button>
+                            </div>
 
                             {/* Type Filter */}
                             <div className="flex flex-col gap-4">
@@ -237,14 +285,25 @@ function FineGemsContent() {
                                 <div className="flex flex-col gap-3">
                                     {types.map((type) => (
                                         <label key={type.slug} className="flex items-center gap-3 cursor-pointer group">
-                                            <input type="checkbox" className="w-4 h-4 border-gray-300 rounded text-[#b38e5d] focus:ring-[#b38e5d]" />
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 border-gray-300 rounded text-[#b38e5d] focus:ring-[#b38e5d]"
+                                                checked={selectedTypes.includes(type.name)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedTypes([...selectedTypes, type.name]);
+                                                    } else {
+                                                        setSelectedTypes(selectedTypes.filter(t => t !== type.name));
+                                                    }
+                                                }}
+                                            />
                                             <span className="text-sm text-gray-500 group-hover:text-gray-900">{type.name}</span>
                                         </label>
                                     ))}
                                 </div>
                             </div>
 
-                            {/* Shape etc... (omitted detailed filters for brevity if not strictly needed, but included for completeness) */}
+                            {/* Shape Filter */}
                             <div className="flex flex-col gap-5">
                                 <div className="flex items-center gap-2 cursor-pointer group">
                                     <span className="material-symbols-outlined text-gray-900 text-lg">arrow_drop_down</span>
@@ -254,7 +313,18 @@ function FineGemsContent() {
                                     {shapes.map((shape) => (
                                         <label key={shape.slug} className="flex items-center justify-between group cursor-pointer">
                                             <div className="flex items-center gap-3">
-                                                <input type="checkbox" className="w-4 h-4 border-gray-300 rounded text-[#b38e5d] focus:ring-[#b38e5d] cursor-pointer" />
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 border-gray-300 rounded text-[#b38e5d] focus:ring-[#b38e5d] cursor-pointer"
+                                                    checked={selectedShapes.includes(shape.name)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSelectedShapes([...selectedShapes, shape.name]);
+                                                        } else {
+                                                            setSelectedShapes(selectedShapes.filter(s => s !== shape.name));
+                                                        }
+                                                    }}
+                                                />
                                                 <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">{shape.name}</span>
                                             </div>
                                         </label>
@@ -262,6 +332,66 @@ function FineGemsContent() {
                                 </div>
                                 <div className="h-px bg-gray-100 mt-2" />
                             </div>
+
+                            {/* Price Filter */}
+                            <div className="flex flex-col gap-6">
+                                <div className="flex items-center gap-2 cursor-pointer group">
+                                    <span className="material-symbols-outlined text-gray-900 text-lg">arrow_drop_down</span>
+                                    <span className="text-sm font-bold text-gray-900">Price (Rs)</span>
+                                </div>
+
+                                <div className="flex flex-col gap-6 px-1">
+                                    <div className="relative h-1.5 bg-gray-100 rounded-full mt-4 group">
+                                        {/* Progress Bar */}
+                                        <div
+                                            className="absolute h-full bg-[#b38e5d] rounded-full"
+                                            style={{
+                                                left: `${((minPrice - 10000) / (1000000 - 10000)) * 100}%`,
+                                                right: `${100 - ((maxPrice - 10000) / (1000000 - 10000)) * 100}%`
+                                            }}
+                                        />
+
+                                        {/* Min Handle */}
+                                        <input
+                                            type="range"
+                                            min="10000"
+                                            max="1000000"
+                                            step="5000"
+                                            value={minPrice}
+                                            onChange={(e) => {
+                                                const val = Math.min(Number(e.target.value), maxPrice - 10000);
+                                                setMinPrice(val);
+                                            }}
+                                            className="absolute w-full h-1.5 bg-transparent appearance-none pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#b38e5d] [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:transition-transform"
+                                        />
+
+                                        {/* Max Handle */}
+                                        <input
+                                            type="range"
+                                            min="10000"
+                                            max="1000000"
+                                            step="5000"
+                                            value={maxPrice}
+                                            onChange={(e) => {
+                                                const val = Math.max(Number(e.target.value), minPrice + 10000);
+                                                setMaxPrice(val);
+                                            }}
+                                            className="absolute w-full h-1.5 bg-transparent appearance-none pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#b38e5d] [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:transition-transform"
+                                        />
+                                    </div>
+                                    <div className="flex justify-between items-center text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                                        <span>Rs. {minPrice.toLocaleString()}</span>
+                                        <span>Rs. {maxPrice.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={applyFilters}
+                                className="w-full py-4 bg-[#b38e5d] text-white rounded-lg font-bold text-sm shadow-md transition-all active:scale-95 hover:bg-[#a17e4f]"
+                            >
+                                Apply Filters
+                            </button>
 
                         </div>
                     </aside>

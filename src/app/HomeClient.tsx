@@ -185,7 +185,7 @@ export default function HomeClient() {
                 const { data } = await supabase
                     .from("categories")
                     .select("*")
-                    .order("name", { ascending: true });
+                    .order("order", { ascending: true });
 
                 if (data) setCategories(data);
             } catch (error) {

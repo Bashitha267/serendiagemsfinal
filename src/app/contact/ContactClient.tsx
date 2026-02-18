@@ -207,7 +207,7 @@ ${formData.message}`;
                                 <div className="space-y-2">
                                     <h4 className="text-[#b38e5d] text-[10px] uppercase font-bold tracking-[0.3em]">Direct Communication</h4>
                                     <div className="space-y-3">
-                                        <a href="mailto:rehanbhareti@gmail.com" className="block text-gray-900 text-xl font-serif hover:text-[#b38e5d] transition-colors">rehanbhareti@gmail.com</a>
+                                        <a href="mailto:contact@serendiagem.com" className="block text-gray-900 text-xl font-serif hover:text-[#b38e5d] transition-colors">contact@serendiagem.com</a>
                                         <a href="https://wa.me/94772202885" className="block text-gray-900 text-xl font-serif hover:text-[#b38e5d] transition-colors">077 220 2885</a>
                                     </div>
                                 </div>

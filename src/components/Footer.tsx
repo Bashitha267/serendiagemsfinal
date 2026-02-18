@@ -22,8 +22,17 @@ export default function Footer() {
 
     useEffect(() => {
         const fetchCategories = async () => {
-            const { data } = await supabase.from('categories').select('name, slug').limit(5);
-            if (data) setCategories(data);
+            const { data } = await supabase
+                .from('categories')
+                .select('name, slug, order')
+                .order('order', { ascending: true });
+
+            if (data) {
+                // Move "Fine Gems" to the end if it exists
+                const fineGems = data.filter(cat => cat.slug === 'fine-gems' || cat.slug === 'fine_gems');
+                const otherGems = data.filter(cat => cat.slug !== 'fine-gems' && cat.slug !== 'fine_gems');
+                setCategories([...otherGems, ...fineGems]);
+            }
         };
         fetchCategories();
     }, []);
@@ -91,11 +100,11 @@ export default function Footer() {
                                 077 220 2885
                             </a>
                             <a
-                                href="mailto:rehanbhareti@gmail.com"
+                                href="mailto:contact@serendiagem.com"
                                 className="text-gray-500 hover:text-[#1152d4] transition-colors flex items-center gap-2 text-sm"
                             >
                                 <span className="material-symbols-outlined text-[18px]">mail</span>
-                                rehanbhareti@gmail.com
+                                contact@serendiagem.com
                             </a>
                         </div>
                     </div>

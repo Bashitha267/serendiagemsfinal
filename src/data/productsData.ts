@@ -14,6 +14,7 @@ export interface Product {
     badgeColor?: string;
     images: string[];
     category?: string;
+    type?: string;
 }
 
 export const productsData: Record<string, Product> = {

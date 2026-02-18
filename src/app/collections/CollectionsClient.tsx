@@ -40,7 +40,14 @@ function CollectionsContent() {
 
     // State
     const [products, setProducts] = useState<Product[]>([]);
+    const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    // Filter States
+    const [minPrice, setMinPrice] = useState<number>(10000);
+    const [maxPrice, setMaxPrice] = useState<number>(1000000);
+    const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+    const [selectedShapes, setSelectedShapes] = useState<string[]>([]);
 
     // Initial Data Fetch
     useEffect(() => {
@@ -115,6 +122,7 @@ function CollectionsContent() {
                         weight: item.weight,
                         origin: item.origin,
                         shape: item.shape?.name || '',
+                        type: item.type?.name || '',
                         treatment: item.treatment,
                         clarity: item.clarity,
                         color: item.color,
@@ -123,6 +131,7 @@ function CollectionsContent() {
                         category: item.category?.name || '',
                     }));
                     setProducts(formatedProducts);
+                    setFilteredProducts(formatedProducts);
                 }
             } catch (err) {
                 console.error('Unexpected error:', err);
@@ -134,8 +143,38 @@ function CollectionsContent() {
         fetchProducts();
     }, [categoryFilter]);
 
+    // Apply filters function
+    const applyFilters = () => {
+        let result = [...products];
+
+        // Price Filter
+        result = result.filter(p => p.price >= minPrice && p.price <= maxPrice);
+
+        // Type Filter
+        if (selectedTypes.length > 0) {
+            result = result.filter(p => selectedTypes.includes(p.type || ''));
+        }
+
+        // Shape Filter
+        if (selectedShapes.length > 0) {
+            result = result.filter(p => selectedShapes.includes(p.shape || ''));
+        }
+
+        setFilteredProducts(result);
+        setShowMobileFilters(false);
+    };
+
+    const resetFilters = () => {
+        setMinPrice(10000);
+        setMaxPrice(1000000);
+        setSelectedTypes([]);
+        setSelectedShapes([]);
+        setFilteredProducts(products);
+        setShowMobileFilters(false);
+    };
+
     // Client-side Sorting (applied to the fetched products)
-    const sortedProducts = [...products].sort((a, b) => {
+    const sortedProducts = [...filteredProducts].sort((a, b) => {
         switch (sortBy) {
             case "PriceLowHigh":
                 return a.price - b.price;
@@ -154,7 +193,7 @@ function CollectionsContent() {
 
     useEffect(() => {
         const fetchFilters = async () => {
-            const { data: categoriesData } = await supabase.from('categories').select('*').order('name');
+            const { data: categoriesData } = await supabase.from('categories').select('*').order('order', { ascending: true });
             if (categoriesData) {
                 setCategories(categoriesData.map(cat => ({
                     name: cat.name,
@@ -284,7 +323,15 @@ function CollectionsContent() {
 
                         {/* Filter by: */}
                         <div className="flex flex-col gap-10">
-                            <h3 className="text-gray-900 font-bold text-sm uppercase tracking-wider">Filter by:</h3>
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-gray-900 font-bold text-sm uppercase tracking-wider">Filter by:</h3>
+                                <button
+                                    onClick={resetFilters}
+                                    className="text-[10px] text-[#b38e5d] font-bold uppercase tracking-widest hover:underline"
+                                >
+                                    Reset
+                                </button>
+                            </div>
 
                             {/* Type Filter */}
                             <div className="flex flex-col gap-4">
@@ -295,7 +342,18 @@ function CollectionsContent() {
                                 <div className="flex flex-col gap-3">
                                     {types.map((type) => (
                                         <label key={type.slug} className="flex items-center gap-3 cursor-pointer group">
-                                            <input type="checkbox" className="w-4 h-4 border-gray-300 rounded text-[#b38e5d] focus:ring-[#b38e5d]" />
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 border-gray-300 rounded text-[#b38e5d] focus:ring-[#b38e5d]"
+                                                checked={selectedTypes.includes(type.name)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedTypes([...selectedTypes, type.name]);
+                                                    } else {
+                                                        setSelectedTypes(selectedTypes.filter(t => t !== type.name));
+                                                    }
+                                                }}
+                                            />
                                             <span className="text-sm text-gray-500 group-hover:text-gray-900">{type.name}</span>
                                         </label>
                                     ))}
@@ -312,7 +370,18 @@ function CollectionsContent() {
                                     {shapes.map((shape) => (
                                         <label key={shape.slug} className="flex items-center justify-between group cursor-pointer">
                                             <div className="flex items-center gap-3">
-                                                <input type="checkbox" className="w-4 h-4 border-gray-300 rounded text-[#b38e5d] focus:ring-[#b38e5d] cursor-pointer" />
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 border-gray-300 rounded text-[#b38e5d] focus:ring-[#b38e5d] cursor-pointer"
+                                                    checked={selectedShapes.includes(shape.name)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSelectedShapes([...selectedShapes, shape.name]);
+                                                        } else {
+                                                            setSelectedShapes(selectedShapes.filter(s => s !== shape.name));
+                                                        }
+                                                    }}
+                                                />
                                                 <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">{shape.name}</span>
                                             </div>
                                             {/* Count removed as it requires complex product-relation queries */}
@@ -328,39 +397,54 @@ function CollectionsContent() {
                                     <span className="text-sm font-bold text-gray-900">Price (Rs)</span>
                                 </div>
 
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                                    <div className="w-full sm:flex-1 flex items-center border border-gray-200 rounded min-w-0">
-                                        <div className="bg-gray-100 px-2 py-2 text-[#b38e5d] font-bold text-sm border-r border-gray-200">Rs</div>
-                                        <input type="number" placeholder="139400" className="w-full px-2 py-2 text-sm focus:outline-none bg-transparent" />
-                                    </div>
-                                    <span className="hidden sm:inline text-gray-400">-</span>
-                                    <div className="w-full sm:flex-1 flex items-center border border-gray-200 rounded min-w-0">
-                                        <div className="bg-gray-50 px-2 py-2 text-gray-500 font-medium text-sm border-r border-gray-200">Rs</div>
-                                        <input type="number" placeholder="2515600" className="w-full px-2 py-2 text-sm focus:outline-none bg-transparent" />
-                                    </div>
-                                </div>
+                                <div className="flex flex-col gap-6 px-1">
+                                    <div className="relative h-1.5 bg-gray-100 rounded-full mt-2 group">
+                                        {/* Progress Bar */}
+                                        <div
+                                            className="absolute h-full bg-[#b38e5d] rounded-full"
+                                            style={{
+                                                left: `${((minPrice - 10000) / (1000000 - 10000)) * 100}%`,
+                                                right: `${100 - ((maxPrice - 10000) / (1000000 - 10000)) * 100}%`
+                                            }}
+                                        />
 
-                                <div className="flex flex-col gap-4 px-1">
-                                    <div className="relative h-1 bg-gray-900 rounded-full mt-4">
-                                        <div className="absolute -top-[7px] left-0 w-4 h-4 rounded-full bg-white border-2 border-gray-900 cursor-pointer shadow-sm hover:scale-110 transition-transform" />
-                                        <div className="absolute -top-[7px] right-0 w-4 h-4 rounded-full bg-white border-2 border-gray-900 cursor-pointer shadow-sm hover:scale-110 transition-transform" />
+                                        {/* Min Handle */}
+                                        <input
+                                            type="range"
+                                            min="10000"
+                                            max="1000000"
+                                            step="5000"
+                                            value={minPrice}
+                                            onChange={(e) => {
+                                                const val = Math.min(Number(e.target.value), maxPrice - 10000);
+                                                setMinPrice(val);
+                                            }}
+                                            className="absolute w-full h-1.5 bg-transparent appearance-none pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#b38e5d] [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:transition-transform"
+                                        />
 
-                                        {[...Array(5)].map((_, i) => (
-                                            <div key={i} className="w-px h-2 bg-gray-900 -mt-0.5" />
-                                        ))}
+                                        {/* Max Handle */}
+                                        <input
+                                            type="range"
+                                            min="10000"
+                                            max="1000000"
+                                            step="5000"
+                                            value={maxPrice}
+                                            onChange={(e) => {
+                                                const val = Math.max(Number(e.target.value), minPrice + 10000);
+                                                setMaxPrice(val);
+                                            }}
+                                            className="absolute w-full h-1.5 bg-transparent appearance-none pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#b38e5d] [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:transition-transform"
+                                        />
                                     </div>
-                                    <div className="flex justify-between text-[10px] text-gray-500 font-medium tracking-tighter">
-                                        <span>139,400</span>
-                                        <span>733,450</span>
-                                        <span>1,327,500</span>
-                                        <span>1,921,550</span>
-                                        <span>2,515,600</span>
+                                    <div className="flex justify-between items-center text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                                        <span>Rs. {minPrice.toLocaleString()}</span>
+                                        <span>Rs. {maxPrice.toLocaleString()}</span>
                                     </div>
                                 </div>
                             </div>
 
                             <button
-                                onClick={() => setShowMobileFilters(false)}
+                                onClick={applyFilters}
                                 className="w-full py-4 bg-[#b38e5d] text-white rounded-lg font-bold text-sm shadow-md transition-all active:scale-95 hover:bg-[#a17e4f]"
                             >
                                 Apply Filters
@@ -509,17 +593,7 @@ function CollectionsContent() {
                                                         {product.badge}
                                                     </span>
                                                 )}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        toggleFavorite(product.id);
-                                                    }}
-                                                    className="size-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md text-gray-400 group-hover:text-rose-500 transition-all duration-300 shadow-sm ml-auto"
-                                                >
-                                                    <span className="material-symbols-outlined text-[20px] leading-none">
-                                                        {favorites.includes(product.id) ? "favorite" : "favorite"}
-                                                    </span>
-                                                </button>
+
                                             </div>
                                         </div>
 

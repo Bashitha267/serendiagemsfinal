@@ -28,7 +28,7 @@ export default function Navbar() {
                 const { data } = await supabase
                     .from("categories")
                     .select("*")
-                    .order("name", { ascending: true });
+                    .order("order", { ascending: true });
 
                 if (data) {
                     setGemCategories(
