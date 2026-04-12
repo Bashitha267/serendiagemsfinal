@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -9,7 +9,8 @@ import toast from "react-hot-toast";
 const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
-export default function EditProductPage({ params }: { params: { id: string } }) {
+export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
@@ -46,7 +47,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             await fetchProduct();
         };
         init();
-    }, [params.id]);
+    }, [id]);
 
     const fetchDependencies = async () => {
         const { data: catData } = await supabase.from("categories").select("id, name").order("name");
@@ -63,7 +64,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             const { data, error } = await supabase
                 .from("products")
                 .select("*")
-                .eq("id", params.id)
+                .eq("id", id)
                 .single();
 
             if (error) throw error;
@@ -188,7 +189,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 shape_id: formData.shape_id ? parseInt(formData.shape_id) : null,
                 images: finalImageUrls,
                 video_url: videoUrl
-            }).eq("id", params.id);
+            }).eq("id", id);
 
             if (error) throw error;
 

@@ -30,8 +30,8 @@ interface Product {
 function FineGemsContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    // Force category to 'finegems'
-    const categoryFilter = "finegems";
+    // Force category to 'fine-gems'
+    const categoryFilter = "fine-gems";
 
     // We can still allow other filters like type/shape if we want, but the category is fixed.
 
@@ -120,8 +120,8 @@ function FineGemsContent() {
 
                 let builder = supabase.from('products').select(selectQuery);
 
-                // Hardcode filter for finegems
-                builder = builder.eq('category.slug', 'finegems');
+                // Hardcode filter for fine-gems
+                builder = builder.in('category.slug', ['fine-gems', 'fine_gems', 'finegems']);
 
                 const { data, error } = await builder;
 
@@ -222,7 +222,7 @@ function FineGemsContent() {
 
     const handleCategoryClick = (slug: string) => {
         // If clicking on another category, go to main collections page
-        if (slug !== 'finegems') {
+        if (!['fine-gems', 'fine_gems', 'finegems'].includes(slug)) {
             router.push(`/collections?category=${slug}`);
         }
     };
@@ -253,7 +253,7 @@ function FineGemsContent() {
                                     <button
                                         key={cat.slug}
                                         onClick={() => handleCategoryClick(cat.slug)}
-                                        className={`text-left text-sm transition-colors hover:text-[#b38e5d] ${cat.slug === 'finegems'
+                                        className={`text-left text-sm transition-colors hover:text-[#b38e5d] ${['fine-gems', 'fine_gems', 'finegems'].includes(cat.slug)
                                             ? "text-[#b38e5d] font-bold"
                                             : "text-gray-500 font-medium"
                                             }`}
